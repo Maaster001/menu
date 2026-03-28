@@ -171,19 +171,21 @@ function renderOrderView() {
             startX = e.touches[0].clientX; startY = e.touches[0].clientY;
             li.style.transition = 'none'; moved = false;
         }, { passive: true });
+li.addEventListener('touchmove', (e) => {
+    let curX = e.touches[0].clientX, curY = e.touches[0].clientY;
+    let dX = curX - startX, dY = curY - startY;
 
-        li.addEventListener('touchmove', (e) => {
-            let curX = e.touches[0].clientX, curY = e.touches[0].clientY;
-            let dX = curX - startX, dY = curY - startY;
-            if (Math.abs(dX) > 10 || Math.abs(dY) > 10) moved = true;
-            if (moved && Math.abs(dX) > Math.abs(dY)) {
-                if (dX < 0) {
-                    let moveX = Math.max(dX, -120);
-                    li.style.transform = `translateX(${moveX}px)`;
-                    li.classList.toggle('swipe-ready', moveX < -60);
-                }
-            }
-        }, { passive: true });
+    if (!moved && (Math.abs(dX) > 10 || Math.abs(dY) > 10)) moved = true;
+
+    if (moved && Math.abs(dX) > Math.abs(dY)) {
+        if (e.cancelable) e.preventDefault();
+        let moveX = Math.max(dX, -120);
+        if (moveX > 0) moveX = 0;
+        li.style.transform = `translateX(${moveX}px)`;
+        li.classList.toggle('swipe-ready', moveX < -60);
+    }
+}, { passive: false });
+
 
         li.addEventListener('touchend', (e) => {
             li.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
@@ -386,11 +388,14 @@ function renderStoresView() {
         let startX = 0, moved = false;
         itemEl.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; row.style.transition = 'none'; moved = false; }, { passive: true });
         itemEl.addEventListener('touchmove', (e) => {
-            let dX = e.touches[0].clientX - startX;
-            if (Math.abs(dX) > 10) moved = true;
-            if (moved) {
+            let curX = e.touches[0].clientX, curY = e.touches[0].clientY;
+            let dX = curX - startX, dY = curY - startY;
+            if (!moved && (Math.abs(dX) > 10 || Math.abs(dY) > 10)) moved = true;
+            if (moved && Math.abs(dX) > Math.abs(dY)) {
                 if (e.cancelable) e.preventDefault();
-                row.style.transform = `translateX(${Math.min(0, Math.max(dX, -140))}px)`;
+                let moveX = Math.max(dX, -140);
+                if (moveX > 0) moveX = 0;
+                row.style.transform = `translateX(${moveX}px)`;
             }
         }, { passive: false });
         itemEl.addEventListener('touchend', (e) => {
