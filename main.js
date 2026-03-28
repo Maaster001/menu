@@ -355,11 +355,13 @@ function renderSettingsView() {
         addCatBtn.className = 'cat-btn add-cat-btn';
         addCatBtn.textContent = '+ 분류 추가';
         addCatBtn.onclick = () => {
-            const newCatName = '새 분류 ' + (categories.length + 1);
-            currentSettingsCategory = newCatName;
-            const newId = Date.now();
-            tempMenuData.push({ id: newId, name: '새 메뉴', price: 0, category: currentSettingsCategory, qty: 0 });
-            renderSettingsView();
+            const newCatName = prompt('새로운 카테고리 이름을 입력하세요:');
+            if (newCatName && newCatName.trim()) {
+                currentSettingsCategory = newCatName.trim();
+                const newId = Date.now();
+                tempMenuData.push({ id: newId, name: '새 메뉴', price: 0, category: currentSettingsCategory, qty: 0 });
+                renderSettingsView();
+            }
         };
         settingsCategoryBar.appendChild(addCatBtn);
     }
