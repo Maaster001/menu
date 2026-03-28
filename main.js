@@ -478,12 +478,14 @@ window.onload = () => {
     if (cancelSettingsBtn) cancelSettingsBtn.onclick = () => { tempMenuData = []; switchView('order'); };
     if (saveSettingsBtn) saveSettingsBtn.onclick = () => { menuData = JSON.parse(JSON.stringify(tempMenuData)); saveData(); tempMenuData = []; switchView('order'); };
     if (finishOrderBtn) finishOrderBtn.onclick = () => {
-        const ordered = menuData.filter(i => i.qty > 0); if (ordered.length === 0) return;
+        const ordered = menuData.filter(i => i.qty > 0); 
+        if (ordered.length === 0) return;
         const total = ordered.reduce((sum, i) => sum + (i.price * i.qty), 0);
         orderHistory.unshift({ id: Date.now(), date: new Date().toLocaleString(), items: ordered.map(i => `${i.name} x${i.qty}`), totalPrice: total });
-        menuData.forEach(i => i.qty = 0); saveData(); switchView('order');
-        };
-        }
+        menuData.forEach(i => i.qty = 0); 
+        saveData(); 
+        switchView('order');
+    };
 
     switchView('order');
     initPullToRefresh();
