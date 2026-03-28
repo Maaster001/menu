@@ -126,26 +126,71 @@ body {
 .history-total { font-weight: 700; text-align: right; margin-top: 8px; color: #000; }
 
 /* 설정 */
-.settings-item { background: #fafafa; padding: 15px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #eee; display: flex; flex-direction: column; }
+.settings-item { 
+    background: #fff; 
+    border-radius: 12px; 
+    margin-bottom: 12px; 
+    border: 1px solid #eee; 
+    position: relative; 
+    overflow: hidden; 
+    user-select: none;
+}
 .btn-add { width: 100%; padding: 15px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: 600; margin-bottom: 15px; }
 .settings-actions { display: flex; gap: 10px; margin-top: 20px; }
 .btn-cancel { flex: 1; padding: 15px; background: #eee; color: #333; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; }
 .btn-save { flex: 2; padding: 15px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; }
 .btn-cancel:active, .btn-save:active { transform: scale(0.98); opacity: 0.9; }
-.settings-row { display: flex; gap: 10px; align-items: center; width: 100%; }
+
+.settings-row { 
+    display: flex; 
+    gap: 10px; 
+    align-items: center; 
+    width: 100%; 
+    padding: 15px; 
+    background: #fff; 
+    position: relative; 
+    z-index: 2;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-del { 
+    position: absolute; 
+    right: 0; 
+    top: 0; 
+    height: 100%; 
+    width: 80px; 
+    background: #ff4d4d; 
+    color: #fff; 
+    border: none; 
+    font-size: 0.9rem; 
+    font-weight: 600;
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 1;
+}
+
 /* 드래그 선택 시 스타일 */
 .settings-item.sortable-chosen { 
     background: #fff !important; 
     box-shadow: 0 10px 20px rgba(0,0,0,0.15); 
-    transform: scale(1.03); 
     z-index: 10;
     border-color: #000;
 }
-.drag-handle { color: #ccc; font-size: 1.2rem; cursor: grab; padding: 0 5px; user-select: none; flex-shrink: 0; }
+.drag-handle { 
+    color: #ccc; 
+    font-size: 1.2rem; 
+    cursor: grab; 
+    padding: 10px 5px; 
+    user-select: none; 
+    flex-shrink: 0; 
+}
+.drag-handle:active { cursor: grabbing; }
+
 .settings-item.sortable-ghost { opacity: 0.4; background: #e0e0e0; border: 2px dashed #999; }
 .settings-row input[type="text"] { flex: 1.5; min-width: 0; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; }
 .settings-row input[type="number"] { width: 80px; flex-shrink: 0; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; }
-.btn-del { width: 50px; height: 40px; flex-shrink: 0; background: #ff4d4d; color: #fff; border: none; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
 /* 내비게이션 */
 .app-nav { height: calc(var(--nav-height) + 25px); border-top: 1px solid var(--border-color); display: flex; background: #fff; padding-bottom: 20px; }

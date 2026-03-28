@@ -365,18 +365,59 @@ function renderSettingsView() {
     const filtered = tempMenuData.filter(i => i.category === currentSettingsCategory);
 
     filtered.forEach((item, index) => {
-        const div = document.createElement('div');
-        div.className = 'settings-item';
-        div.dataset.id = item.id;
-        div.innerHTML = `
+        const itemEl = document.createElement('div');
+        itemEl.className = 'settings-item';
+        itemEl.dataset.id = item.id;
+        itemEl.innerHTML = `
             <div class="settings-row">
                 <div class="drag-handle">☰</div>
                 <input type="text" value="${item.name}" onchange="updateMenuInfo(${item.id}, 'name', this.value)">
                 <input type="number" value="${item.price}" onchange="updateMenuInfo(${item.id}, 'price', this.value)">
-                <button class="btn-del" onclick="deleteMenu(${item.id})">삭제</button>
             </div>
+            <button class="btn-del" onclick="deleteMenu(${item.id})">삭제</button>
         `;
-        settingsMenuList.appendChild(div);
+
+        // 슬라이드 삭제 로직 추가
+        const row = itemEl.querySelector('.settings-row');
+        let startX = 0;
+        let currentX = 0;
+        let isSwiping = false;
+
+        itemEl.addEventListener('touchstart', (e) => {
+            // 드래그 핸들이나 입력창 클릭 시 슬라이드 방지 로직은 필요에 따라 추가
+            if (e.target.closest('.drag-handle') || e.target.tagName === 'INPUT') return;
+            startX = e.touches[0].clientX;
+            row.style.transition = 'none';
+            isSwiping = true;
+        }, { passive: true });
+
+        itemEl.addEventListener('touchmove', (e) => {
+            if (!isSwiping) return;
+            currentX = e.touches[0].clientX;
+            let diffX = currentX - startX;
+
+            if (diffX < 0) { // 왼쪽으로 슬라이드
+                let moveX = Math.max(diffX, -80);
+                row.style.transform = `translateX(${moveX}px)`;
+            } else {
+                row.style.transform = `translateX(0)`;
+            }
+        }, { passive: true });
+
+        itemEl.addEventListener('touchend', (e) => {
+            if (!isSwiping) return;
+            isSwiping = false;
+            row.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            
+            let diffX = e.changedTouches[0].clientX - startX;
+            if (diffX < -40) {
+                row.style.transform = 'translateX(-80px)';
+            } else {
+                row.style.transform = 'translateX(0)';
+            }
+        }, { passive: true });
+
+        settingsMenuList.appendChild(itemEl);
     });
 
     initSortable();
@@ -389,9 +430,9 @@ function initSortable() {
 
     sortableInstance = Sortable.create(settingsMenuList, {
         animation: 200,
-        handle: '.settings-item',
-        delay: 250,
-        delayOnTouchOnly: true,
+        handle: '.drag-handle', // 전체가 아닌 핸들로만 드래그 가능하게 변경
+        delay: 0,
+        delayOnTouchOnly: false,
         touchStartThreshold: 5,
         ghostClass: 'sortable-ghost',
         chosenClass: 'sortable-chosen',
