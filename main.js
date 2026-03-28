@@ -526,7 +526,32 @@ function deleteStore(id) {
 
 if (addStoreBtn) addStoreBtn.onclick = addStore;
 
-// --- 8. 초기화 ---
+// --- 8. 초기화 및 유틸리티 ---
+function initPullToRefresh() {
+    let startY = 0;
+    const main = document.querySelector('.app-main');
+    
+    document.addEventListener('touchstart', (e) => {
+        // 스크롤이 맨 위에 있을 때만 시작 위치 기록
+        if (main.scrollTop === 0) {
+            startY = e.touches[0].pageY;
+        } else {
+            startY = -1;
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (startY === -1) return;
+        const currentY = e.touches[0].pageY;
+        const diff = currentY - startY;
+        
+        // 150px 이상 아래로 당기면 새로고침
+        if (diff > 150) {
+            location.reload();
+        }
+    }, { passive: true });
+}
+
 function preventZoom() {
     document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
     document.addEventListener('gesturestart', (e) => e.preventDefault());
@@ -539,6 +564,8 @@ window.onload = () => {
     initData();
     switchView('order');
     preventZoom();
+    initPullToRefresh();
+    
     const addMenuBtn = document.getElementById('add-menu-btn');
     if (addMenuBtn) addMenuBtn.onclick = () => {
         const cat = currentSettingsCategory || '기타';
