@@ -377,30 +377,46 @@ function renderSettingsView() {
             <button class="btn-del" onclick="deleteMenu(${item.id})">삭제</button>
         `;
 
-        // 슬라이드 삭제 로직 추가
+        // 슬라이드 삭제 로직 개선
         const row = itemEl.querySelector('.settings-row');
         let startX = 0;
+        let startY = 0;
         let currentX = 0;
         let isSwiping = false;
+        let moved = false;
 
         itemEl.addEventListener('touchstart', (e) => {
-            // 드래그 핸들이나 입력창 클릭 시 슬라이드 방지 로직은 필요에 따라 추가
-            if (e.target.closest('.drag-handle') || e.target.tagName === 'INPUT') return;
+            // 드래그 핸들에서 시작하는 경우는 SortableJS에 양보
+            if (e.target.closest('.drag-handle')) return;
+            
             startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
             row.style.transition = 'none';
             isSwiping = true;
+            moved = false;
         }, { passive: true });
 
         itemEl.addEventListener('touchmove', (e) => {
             if (!isSwiping) return;
             currentX = e.touches[0].clientX;
+            let currentY = e.touches[0].clientY;
             let diffX = currentX - startX;
+            let diffY = currentY - startY;
 
-            if (diffX < 0) { // 왼쪽으로 슬라이드
-                let moveX = Math.max(diffX, -80);
-                row.style.transform = `translateX(${moveX}px)`;
-            } else {
-                row.style.transform = `translateX(0)`;
+            // 수평 이동이 수직 이동보다 크고 일정 거리 이상일 때만 슬라이드로 간주
+            if (!moved && Math.abs(diffX) > 10) moved = true;
+
+            if (moved && Math.abs(diffX) > Math.abs(diffY)) {
+                if (diffX < 0) { // 왼쪽으로 슬라이드
+                    let moveX = Math.max(diffX, -80);
+                    row.style.transform = `translateX(${moveX}px)`;
+                    // 슬라이드 중이면 입력창 포커스 해제
+                    if (Math.abs(diffX) > 20 && document.activeElement.tagName === 'INPUT') {
+                        document.activeElement.blur();
+                    }
+                } else {
+                    row.style.transform = `translateX(0)`;
+                }
             }
         }, { passive: true });
 
@@ -410,7 +426,7 @@ function renderSettingsView() {
             row.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
             
             let diffX = e.changedTouches[0].clientX - startX;
-            if (diffX < -40) {
+            if (moved && diffX < -40) {
                 row.style.transform = 'translateX(-80px)';
             } else {
                 row.style.transform = 'translateX(0)';
