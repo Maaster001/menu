@@ -279,27 +279,24 @@ if (finishOrderBtn) {
         const ordered = menuData.filter(i => i.qty > 0);
         if (ordered.length === 0) return;
 
-        if (confirm('주문을 완료하고 기록하시겠습니까?')) {
-            const total = ordered.reduce((sum, i) => sum + (i.price * i.qty), 0);
-            const orderRecord = {
-                id: Date.now(),
-                date: new Date().toLocaleString(),
-                items: ordered.map(i => `${i.name} x${i.qty}`),
-                totalPrice: total
-            };
+        const total = ordered.reduce((sum, i) => sum + (i.price * i.qty), 0);
+        const orderRecord = {
+            id: Date.now(),
+            date: new Date().toLocaleString(),
+            items: ordered.map(i => `${i.name} x${i.qty}`),
+            totalPrice: total
+        };
 
-            orderHistory.unshift(orderRecord);
-            localStorage.setItem('albaHistory', JSON.stringify(orderHistory));
+        orderHistory.unshift(orderRecord);
+        localStorage.setItem('albaHistory', JSON.stringify(orderHistory));
 
-            menuData.forEach(i => i.qty = 0);
-            saveData();
-            alert('주문이 기록되었습니다.');
-            switchView('history');
-            
-            navBtns.forEach(b => b.classList.remove('active'));
-            const historyNav = document.querySelector('[data-view="history"]');
-            if (historyNav) historyNav.classList.add('active');
-        }
+        menuData.forEach(i => i.qty = 0);
+        saveData();
+        switchView('history');
+        
+        navBtns.forEach(b => b.classList.remove('active'));
+        const historyNav = document.querySelector('[data-view="history"]');
+        if (historyNav) historyNav.classList.add('active');
     };
 }
 
@@ -358,13 +355,11 @@ function renderSettingsView() {
         addCatBtn.className = 'cat-btn add-cat-btn';
         addCatBtn.textContent = '+ 분류 추가';
         addCatBtn.onclick = () => {
-            const newCatName = prompt('새로운 카테고리 이름을 입력하세요:');
-            if (newCatName && newCatName.trim()) {
-                currentSettingsCategory = newCatName.trim();
-                const newId = Date.now();
-                tempMenuData.push({ id: newId, name: '새 메뉴', price: 0, category: currentSettingsCategory, qty: 0 });
-                renderSettingsView();
-            }
+            const newCatName = '새 분류 ' + (categories.length + 1);
+            currentSettingsCategory = newCatName;
+            const newId = Date.now();
+            tempMenuData.push({ id: newId, name: '새 메뉴', price: 0, category: currentSettingsCategory, qty: 0 });
+            renderSettingsView();
         };
         settingsCategoryBar.appendChild(addCatBtn);
     }
@@ -431,20 +426,16 @@ function updateMenuInfo(id, field, value) {
 }
 
 function deleteMenu(id) {
-    if (confirm('삭제하시겠습니까?')) {
-        tempMenuData = tempMenuData.filter(i => i.id !== id);
-        renderSettingsView();
-    }
+    tempMenuData = tempMenuData.filter(i => i.id !== id);
+    renderSettingsView();
 }
 
 const resetBtn = document.getElementById('reset-order-btn');
 if (resetBtn) {
     resetBtn.onclick = () => {
-        if (confirm('현재 주문을 취소하시겠습니까?')) {
-            menuData.forEach(i => i.qty = 0);
-            saveData();
-            switchView(currentView);
-        }
+        menuData.forEach(i => i.qty = 0);
+        saveData();
+        switchView(currentView);
     };
 }
 
