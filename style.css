@@ -148,8 +148,7 @@ body {
 .btn-del { width: 50px; height: 40px; flex-shrink: 0; background: #ff4d4d; color: #fff; border: none; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
 /* 내비게이션 */
-.app-nav { height: var(--nav-height); border-top: 1px solid var(--border-color); display: flex; background: #fff; }
-.nav-btn { flex: 1; border: none; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #bbb; }
+.app-nav { height: calc(var(--nav-height) + 10px); border-top: 1px solid var(--border-color); display: flex; background: #fff; padding-bottom: 5px; }
+.nav-btn { flex: 1; border: none; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #bbb; padding-bottom: 10px; }
 .nav-btn.active { color: #000; font-weight: 700; }
-.nav-btn .icon { font-size: 1.5rem; line-height: 10px; margin-bottom: 5px; }
-.nav-btn .label { font-size: 0.8rem; }
+.nav-btn .label { font-size: 0.95rem; }
