@@ -31,7 +31,6 @@ const orderMenuList = document.getElementById('order-menu-list');
 const finalOrderList = document.getElementById('final-order-list');
 const historyList = document.getElementById('history-list');
 const settingsMenuList = document.getElementById('settings-menu-list');
-const summaryTotalQty = document.getElementById('summary-total-qty');
 const summaryTotalPrice = document.getElementById('summary-total-price');
 const finishOrderBtn = document.getElementById('finish-order-btn');
 const feedbackLayer = document.getElementById('feedback-layer');
@@ -236,7 +235,6 @@ function renderSummaryView() {
     
     if (ordered.length === 0) {
         finalOrderList.innerHTML = '<li class="empty-msg">주문 내역이 없습니다.</li>';
-        summaryTotalQty.textContent = '0';
         summaryTotalPrice.textContent = '0원';
         finishOrderBtn.disabled = true;
         finishOrderBtn.style.opacity = '0.3';
@@ -246,7 +244,6 @@ function renderSummaryView() {
     finishOrderBtn.disabled = false;
     finishOrderBtn.style.opacity = '1';
 
-    let totalQty = 0;
     let totalPrice = 0;
     ordered.forEach(item => {
         const li = document.createElement('li');
@@ -266,11 +263,9 @@ function renderSummaryView() {
             renderSummaryView();
         };
         finalOrderList.appendChild(li);
-        totalQty += item.qty;
         totalPrice += (item.price * item.qty);
     });
 
-    summaryTotalQty.textContent = totalQty;
     summaryTotalPrice.textContent = `${totalPrice.toLocaleString()}원`;
 }
 
