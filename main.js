@@ -348,7 +348,7 @@ function renderSettingsView() {
 
         const addCatBtn = document.createElement('button');
         addCatBtn.className = 'cat-btn add-cat-btn';
-        addCatBtn.textContent = '+ 분류 추가';
+        addCatBtn.textContent = '+';
         addCatBtn.onclick = () => {
             const newCatName = prompt('새로운 카테고리 이름을 입력하세요:');
             if (newCatName && newCatName.trim()) {
