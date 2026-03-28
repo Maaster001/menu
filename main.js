@@ -16,7 +16,6 @@ let currentStoreId = localStorage.getItem('albaCurrentStoreId');
 
 // 초기 마이그레이션 및 데이터 로드
 function initData() {
-    // 기존에 단일 가게 데이터만 있던 경우 마이그레이션
     const legacyMenu = localStorage.getItem('albaMenu_v4');
     const legacyHistory = localStorage.getItem('albaHistory');
 
@@ -123,12 +122,7 @@ function switchView(viewName) {
     const targetView = document.getElementById(`view-${viewName}`);
     if (targetView) targetView.classList.remove('hidden');
 
-    // 하단 탭 버튼 활성화 상태 동기화
-    navBtns.forEach(b => {
-        b.classList.toggle('active', b.dataset.view === viewName);
-    });
-
-    // 헤더 버튼 노출 상태
+    navBtns.forEach(b => b.classList.toggle('active', b.dataset.view === viewName));
     if (storeMenuBtn) storeMenuBtn.classList.toggle('hidden', viewName === 'stores');
 
     if (viewName === 'order') {
@@ -188,10 +182,7 @@ function renderOrderView() {
             <div class="swipe-indicator">+5</div>
         `;
 
-        let startX = 0;
-        let startY = 0;
-        let moved = false;
-
+        let startX = 0, startY = 0, moved = false;
         li.addEventListener('touchstart', (e) => {
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
@@ -200,35 +191,25 @@ function renderOrderView() {
         }, { passive: true });
 
         li.addEventListener('touchmove', (e) => {
-            let currentX = e.touches[0].clientX;
-            let currentY = e.touches[0].clientY;
-            let diffX = currentX - startX;
-            let diffY = currentY - startY;
-
-            if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) moved = true; 
-
-            if (moved && Math.abs(diffX) > Math.abs(diffY)) {
-                if (diffX < 0) {
-                    let moveX = Math.max(diffX, -120);
+            let curX = e.touches[0].clientX, curY = e.touches[0].clientY;
+            let dX = curX - startX, dY = curY - startY;
+            if (Math.abs(dX) > 10 || Math.abs(dY) > 10) moved = true; 
+            if (moved && Math.abs(dX) > Math.abs(dY)) {
+                if (dX < 0) {
+                    let moveX = Math.max(dX, -120);
                     li.style.transform = `translateX(${moveX}px)`;
-                    if (moveX < -60) li.classList.add('swipe-ready');
-                    else li.classList.remove('swipe-ready');
+                    li.classList.toggle('swipe-ready', moveX < -60);
                 }
             }
         }, { passive: true });
 
         li.addEventListener('touchend', (e) => {
-            const endX = e.changedTouches[0].clientX;
-            const diffX = endX - startX;
-            
             li.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
             li.style.transform = 'translateX(0)';
             li.classList.remove('swipe-ready');
-
             if (e.target.closest('.qty-btn')) return;
-
             if (!moved) handleItemAction(item.id, 1, e);
-            else if (diffX < -60) handleItemAction(item.id, 5, e);
+            else if (e.changedTouches[0].clientX - startX < -60) handleItemAction(item.id, 5, e);
         }, { passive: true });
 
         orderMenuList.appendChild(li);
@@ -248,13 +229,11 @@ function showFeedback(delta, event) {
     const text = document.createElement('div');
     text.className = 'floating-text';
     text.textContent = `+${delta}`;
-    
     let x = window.innerWidth / 2, y = window.innerHeight / 2;
     if (event && event.changedTouches && event.changedTouches.length > 0) {
         x = event.changedTouches[0].clientX;
         y = event.changedTouches[0].clientY;
     }
-    
     text.style.left = `${x}px`;
     text.style.top = `${y}px`;
     feedbackLayer.appendChild(text);
@@ -381,6 +360,7 @@ function renderSettingsView() {
     filtered.forEach(item => {
         const itemEl = document.createElement('div');
         itemEl.className = 'settings-item';
+        itemEl.dataset.id = item.id;
         itemEl.innerHTML = `
             <div class="settings-row">
                 <div class="drag-handle">☰</div>
@@ -391,25 +371,36 @@ function renderSettingsView() {
         `;
 
         const row = itemEl.querySelector('.settings-row');
-        let startX = 0, moved = false;
+        let startX = 0, startY = 0, moved = false, isSwiping = false;
+
         itemEl.addEventListener('touchstart', (e) => {
-            if (e.target.closest('.drag-handle') || e.target.tagName === 'INPUT') return;
             startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
             row.style.transition = 'none';
             moved = false;
+            isSwiping = true;
         }, { passive: true });
+
         itemEl.addEventListener('touchmove', (e) => {
-            let diffX = e.touches[0].clientX - startX;
-            if (Math.abs(diffX) > 10) moved = true;
-            if (moved) {
-                row.style.transform = `translateX(${Math.min(0, Math.max(diffX, -80))}px)`;
-                if (Math.abs(diffX) > 20 && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
+            if (!isSwiping) return;
+            let dX = e.touches[0].clientX - startX;
+            let dY = e.touches[0].clientY - startY;
+            if (!moved && Math.abs(dX) > 10) moved = true;
+            if (moved && Math.abs(dX) > Math.abs(dY)) {
+                if (dX < 0) {
+                    row.style.transform = `translateX(${Math.max(dX, -80)}px)`;
+                    if (Math.abs(dX) > 20 && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
+                } else {
+                    row.style.transform = 'translateX(0)';
+                }
             }
         }, { passive: true });
+
         itemEl.addEventListener('touchend', (e) => {
-            row.style.transition = 'transform 0.3s';
-            let diffX = e.changedTouches[0].clientX - startX;
-            row.style.transform = (moved && diffX < -40) ? 'translateX(-80px)' : 'translateX(0)';
+            isSwiping = false;
+            row.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            let dX = e.changedTouches[0].clientX - startX;
+            row.style.transform = (moved && dX < -40) ? 'translateX(-80px)' : 'translateX(0)';
         }, { passive: true });
 
         settingsMenuList.appendChild(itemEl);
@@ -417,19 +408,25 @@ function renderSettingsView() {
     initSortable();
 }
 
+let sortableInstance = null;
 function initSortable() {
-    if (typeof Sortable !== 'undefined') {
-        Sortable.create(settingsMenuList, {
-            handle: '.drag-handle',
-            animation: 200,
-            onEnd: () => {
-                const newIds = Array.from(settingsMenuList.children).map(el => parseInt(el.dataset.id));
-                const others = tempMenuData.filter(i => i.category !== currentSettingsCategory);
-                const current = newIds.map(id => tempMenuData.find(i => i.id === id));
-                tempMenuData = [...others, ...current];
-            }
-        });
-    }
+    if (typeof Sortable === 'undefined') return;
+    if (sortableInstance) sortableInstance.destroy();
+    sortableInstance = Sortable.create(settingsMenuList, {
+        animation: 200,
+        delay: 300,
+        delayOnTouchOnly: true,
+        touchStartThreshold: 5,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        onStart: function() { if (navigator.vibrate) navigator.vibrate(30); },
+        onEnd: () => {
+            const newIds = Array.from(settingsMenuList.children).map(el => parseInt(el.dataset.id));
+            const others = tempMenuData.filter(i => i.category !== currentSettingsCategory);
+            const current = newIds.map(id => tempMenuData.find(i => i.id === id));
+            tempMenuData = [...others, ...current];
+        }
+    });
 }
 
 window.updateMenuInfo = (id, field, value) => {
@@ -463,37 +460,24 @@ function renderStoresView() {
         
         const row = itemEl.querySelector('.store-row');
         let startX = 0, moved = false;
-
         itemEl.addEventListener('touchstart', (e) => {
             startX = e.touches[0].clientX;
             row.style.transition = 'none';
             moved = false;
         }, { passive: true });
-
         itemEl.addEventListener('touchmove', (e) => {
-            let diffX = e.touches[0].clientX - startX;
-            if (Math.abs(diffX) > 10) moved = true;
-            if (moved) {
-                // 수정/삭제 버튼 너비 합계인 140px만큼 슬라이드 가능하게 함
-                row.style.transform = `translateX(${Math.min(0, Math.max(diffX, -140))}px)`;
-            }
+            let dX = e.touches[0].clientX - startX;
+            if (Math.abs(dX) > 10) moved = true;
+            if (moved) row.style.transform = `translateX(${Math.min(0, Math.max(dX, -140))}px)`;
         }, { passive: true });
-
         itemEl.addEventListener('touchend', (e) => {
             row.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-            let diffX = e.changedTouches[0].clientX - startX;
-            if (moved && diffX < -70) {
-                row.style.transform = 'translateX(-140px)';
-            } else {
-                row.style.transform = 'translateX(0)';
-            }
+            let dX = e.changedTouches[0].clientX - startX;
+            row.style.transform = (moved && dX < -70) ? 'translateX(-140px)' : 'translateX(0)';
         }, { passive: true });
 
         itemEl.onclick = (e) => {
-            if (moved) return;
-            if (!e.target.closest('.store-actions')) {
-                selectStore(store.id);
-            }
+            if (!moved && !e.target.closest('.store-actions')) selectStore(store.id);
         };
         storesList.appendChild(itemEl);
     });
@@ -509,13 +493,7 @@ function selectStore(id) {
 function addStore() {
     const name = prompt('새로운 가게 이름을 입력하세요:');
     if (name && name.trim()) {
-        const newStore = {
-            id: 'store_' + Date.now(),
-            name: name.trim(),
-            menuData: JSON.parse(JSON.stringify(defaultMenu)),
-            orderHistory: []
-        };
-        stores.push(newStore);
+        stores.push({ id: 'store_' + Date.now(), name: name.trim(), menuData: JSON.parse(JSON.stringify(defaultMenu)), orderHistory: [] });
         saveStores();
         renderStoresView();
     }
@@ -561,8 +539,6 @@ window.onload = () => {
     initData();
     switchView('order');
     preventZoom();
-    
-    // 설정 버튼 이벤트 연결
     const addMenuBtn = document.getElementById('add-menu-btn');
     if (addMenuBtn) addMenuBtn.onclick = () => {
         const cat = currentSettingsCategory || '기타';
@@ -571,6 +547,5 @@ window.onload = () => {
     };
 };
 
-// 전역 함수 등록
 window.editStore = editStore;
 window.deleteStore = deleteStore;
