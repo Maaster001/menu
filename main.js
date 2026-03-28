@@ -481,8 +481,9 @@ window.onload = () => {
         const ordered = menuData.filter(i => i.qty > 0); if (ordered.length === 0) return;
         const total = ordered.reduce((sum, i) => sum + (i.price * i.qty), 0);
         orderHistory.unshift({ id: Date.now(), date: new Date().toLocaleString(), items: ordered.map(i => `${i.name} x${i.qty}`), totalPrice: total });
-        menuData.forEach(i => i.qty = 0); saveData(); switchView('history');
-    };
+        menuData.forEach(i => i.qty = 0); saveData(); switchView('order');
+        };
+        }
 
     switchView('order');
     initPullToRefresh();
