@@ -1,14 +1,92 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
-  <link href='/style.css' rel='stylesheet'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+    <title>알바 보조 도구 (Advanced)</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Hello, world!</h1>
-  <button onclick="console.log('hello');">Press me</button>
-  <script defer type="text/javascript" src="/main.js"></script>
+    <div class="app-container">
+        <!-- 상단 고정: 제목 및 설정 -->
+        <header class="app-header">
+            <h1 id="view-title">주문 받기</h1>
+            <div class="header-btns">
+                <button id="reset-order-btn" class="btn-mini">취소</button>
+                <button id="settings-btn" class="btn-settings-icon">⚙</button>
+            </div>
+        </header>
+
+        <!-- 메인 컨텐츠 영역 -->
+        <main class="app-main">
+            <!-- 1. 주문 화면 (Order) -->
+            <section id="view-order" class="view">
+                <div id="category-bar" class="category-bar">
+                    <!-- 카테고리 (JS 생성) -->
+                </div>
+                <div id="order-menu-list" class="menu-list">
+                    <!-- 메뉴 리스트 (JS 생성) -->
+                </div>
+
+            </section>
+
+            <!-- 2. 주문 확인 화면 (Summary) -->
+            <section id="view-summary" class="view hidden">
+                <div id="final-order-list" class="menu-list summary-list">
+                    <!-- 주문된 항목만 리스트 (JS 생성) -->
+                </div>
+                <div class="final-total">
+                    <div>총 수량: <span id="summary-total-qty">0</span>개</div>
+                    <div>총 금액: <span id="summary-total-price">0원</span></div>
+                </div>
+                <button id="finish-order-btn" class="btn-finish">주문 완료 및 기록</button>
+            </section>
+
+            <!-- 3. 기록 화면 (History) -->
+            <section id="view-history" class="view hidden">
+                <div id="history-list" class="history-list">
+                    <!-- 저장된 주문 히스토리 (JS 생성) -->
+                </div>
+            </section>
+
+            <!-- 4. 메뉴 설정 화면 (Settings) -->
+            <section id="view-settings" class="view hidden">
+                <div id="settings-category-bar" class="category-bar">
+                    <!-- 카테고리 (JS 생성) -->
+                </div>
+                <div class="settings-header">
+                    <button id="add-menu-btn" class="btn-add">+ 메뉴 추가</button>
+                </div>
+                <div id="settings-menu-list" class="menu-list settings-list">
+                    <!-- 설정용 리스트 (JS 생성) -->
+                </div>
+                <div class="settings-actions">
+                    <button id="cancel-settings" class="btn-cancel">취소</button>
+                    <button id="save-settings" class="btn-save">저장</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- 하단: 메인 내비게이션 (3단 탭) -->
+        <nav class="app-nav">
+            <button class="nav-btn active" data-view="order">
+                <span class="icon">·</span>
+                <span class="label">주문</span>
+            </button>
+            <button class="nav-btn" data-view="summary">
+                <span class="icon">·</span>
+                <span class="label">확인</span>
+            </button>
+            <button class="nav-btn" data-view="history">
+                <span class="icon">·</span>
+                <span class="label">기록</span>
+            </button>
+        </nav>
+    </div>
+    <!-- 플로팅 피드백 요소 (JS에서 사용) -->
+    <div id="feedback-layer" class="feedback-layer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
