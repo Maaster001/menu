@@ -388,8 +388,11 @@ function renderStoresView() {
         itemEl.addEventListener('touchmove', (e) => {
             let dX = e.touches[0].clientX - startX;
             if (Math.abs(dX) > 10) moved = true;
-            if (moved) row.style.transform = `translateX(${Math.min(0, Math.max(dX, -140))}px)`;
-        }, { passive: true });
+            if (moved) {
+                if (e.cancelable) e.preventDefault();
+                row.style.transform = `translateX(${Math.min(0, Math.max(dX, -140))}px)`;
+            }
+        }, { passive: false });
         itemEl.addEventListener('touchend', (e) => {
             row.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
             let dX = e.changedTouches[0].clientX - startX;
