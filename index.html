@@ -8,11 +8,11 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- 상단 고정: 제목 및 설정 -->
+        <!-- 상단 고정: 제목 -->
         <header class="app-header">
             <h1 id="view-title">주문 받기</h1>
             <div class="header-btns">
-                <button id="settings-btn" class="btn-settings-icon">⚙</button>
+                <!-- 설정 버튼 이동됨 -->
             </div>
         </header>
 
@@ -65,7 +65,7 @@
             </section>
         </main>
 
-        <!-- 하단: 메인 내비게이션 (3단 탭) -->
+        <!-- 하단: 메인 내비게이션 (4단 탭) -->
         <nav class="app-nav">
             <button class="nav-btn active" data-view="order">
                 <span class="label">주문</span>
@@ -75,6 +75,9 @@
             </button>
             <button class="nav-btn" data-view="history">
                 <span class="label">기록</span>
+            </button>
+            <button class="nav-btn" data-view="settings">
+                <span class="label">설정</span>
             </button>
         </nav>
     </div>

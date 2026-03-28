@@ -22,7 +22,7 @@ let tempMenuData = []; // 설정 편집용 임시 데이터
 const viewTitle = document.getElementById('view-title');
 const views = document.querySelectorAll('.view');
 const navBtns = document.querySelectorAll('.nav-btn');
-const settingsBtn = document.getElementById('settings-btn');
+const settingsBtn = document.querySelector('.nav-btn[data-view="settings"]');
 const cancelSettingsBtn = document.getElementById('cancel-settings');
 const saveSettingsBtn = document.getElementById('save-settings');
 const categoryBar = document.getElementById('category-bar');
@@ -38,24 +38,24 @@ const feedbackLayer = document.getElementById('feedback-layer');
 // --- 3. 화면 전환 ---
 navBtns.forEach(btn => {
     btn.onclick = () => {
-        // 설정 화면에서 나갈 때 (탭 클릭 시)는 기본적으로 취소로 간주하거나 경고를 줄 수 있으나
-        // 여기선 탭 클릭 시에도 설정 화면을 벗어나면 취소 처리함
-        switchView(btn.dataset.view);
+        const targetView = btn.dataset.view;
+        
+        // 설정 화면 진입 시 데이터 복사 로직 추가
+        if (targetView === 'settings') {
+            tempMenuData = JSON.parse(JSON.stringify(menuData));
+        }
+        
+        switchView(targetView);
         navBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
     };
 });
 
-if (settingsBtn) settingsBtn.onclick = () => {
-    // 설정 진입 시 현재 데이터 복사
-    tempMenuData = JSON.parse(JSON.stringify(menuData));
-    switchView('settings');
-};
-
 if (cancelSettingsBtn) cancelSettingsBtn.onclick = () => {
     // 수정 사항 버리고 복구
     tempMenuData = [];
     switchView('order');
+    navBtns.forEach(b => b.classList.toggle('active', b.dataset.view === 'order'));
 };
 
 if (saveSettingsBtn) saveSettingsBtn.onclick = () => {
@@ -64,6 +64,7 @@ if (saveSettingsBtn) saveSettingsBtn.onclick = () => {
     saveData();
     tempMenuData = [];
     switchView('order');
+    navBtns.forEach(b => b.classList.toggle('active', b.dataset.view === 'order'));
 };
 
 function switchView(viewName) {
@@ -72,7 +73,7 @@ function switchView(viewName) {
     const targetView = document.getElementById(`view-${viewName}`);
     if (targetView) targetView.classList.remove('hidden');
 
-    // 하단 탭 버튼 활성화 상태 동기화 (설정 버튼 클릭 시 등 대응)
+    // 하단 탭 버튼 활성화 상태 동기화
     navBtns.forEach(b => {
         b.classList.toggle('active', b.dataset.view === viewName);
     });
