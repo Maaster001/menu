@@ -446,24 +446,56 @@ window.deleteMenu = (id) => {
 function renderStoresView() {
     storesList.innerHTML = '';
     stores.forEach(store => {
-        const div = document.createElement('div');
-        div.className = `store-item ${store.id === currentStoreId ? 'active' : ''}`;
-        div.innerHTML = `
-            <div class="store-info">
-                <div class="store-name">${store.name}</div>
-                <div class="store-meta">메뉴: ${store.menuData.length}개 / 기록: ${store.orderHistory.length}건</div>
+        const itemEl = document.createElement('div');
+        itemEl.className = `store-item ${store.id === currentStoreId ? 'active' : ''}`;
+        itemEl.innerHTML = `
+            <div class="store-row">
+                <div class="store-info">
+                    <div class="store-name">${store.name}</div>
+                    <div class="store-meta">메뉴: ${store.menuData.length}개 / 기록: ${store.orderHistory.length}건</div>
+                </div>
             </div>
-            ${stores.length > 1 ? '<button class="btn-del" style="position:static; width:60px; height:40px; border-radius:8px;">삭제</button>' : ''}
+            <div class="store-actions">
+                <button class="btn-edit" onclick="event.stopPropagation(); editStore('${store.id}')">수정</button>
+                <button class="btn-del" onclick="event.stopPropagation(); deleteStore('${store.id}')">삭제</button>
+            </div>
         `;
         
-        div.onclick = (e) => {
-            if (e.target.closest('.btn-del')) {
-                deleteStore(store.id);
+        const row = itemEl.querySelector('.store-row');
+        let startX = 0, moved = false;
+
+        itemEl.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            row.style.transition = 'none';
+            moved = false;
+        }, { passive: true });
+
+        itemEl.addEventListener('touchmove', (e) => {
+            let diffX = e.touches[0].clientX - startX;
+            if (Math.abs(diffX) > 10) moved = true;
+            if (moved) {
+                // 수정/삭제 버튼 너비 합계인 140px만큼 슬라이드 가능하게 함
+                row.style.transform = `translateX(${Math.min(0, Math.max(diffX, -140))}px)`;
+            }
+        }, { passive: true });
+
+        itemEl.addEventListener('touchend', (e) => {
+            row.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            let diffX = e.changedTouches[0].clientX - startX;
+            if (moved && diffX < -70) {
+                row.style.transform = 'translateX(-140px)';
             } else {
+                row.style.transform = 'translateX(0)';
+            }
+        }, { passive: true });
+
+        itemEl.onclick = (e) => {
+            if (moved) return;
+            if (!e.target.closest('.store-actions')) {
                 selectStore(store.id);
             }
         };
-        storesList.appendChild(div);
+        storesList.appendChild(itemEl);
     });
 }
 
@@ -489,12 +521,28 @@ function addStore() {
     }
 }
 
+function editStore(id) {
+    const store = stores.find(s => s.id === id);
+    if (!store) return;
+    const newName = prompt('가게 이름을 수정하세요:', store.name);
+    if (newName && newName.trim()) {
+        store.name = newName.trim();
+        saveStores();
+        renderStoresView();
+    }
+}
+
 function deleteStore(id) {
-    if (stores.length <= 1) return;
+    if (stores.length <= 1) {
+        alert('최소 하나 이상의 가게가 있어야 합니다.');
+        return;
+    }
     stores = stores.filter(s => s.id !== id);
-    if (currentStoreId === id) currentStoreId = stores[0].id;
+    if (currentStoreId === id) {
+        currentStoreId = stores[0].id;
+        loadActiveStoreData();
+    }
     saveStores();
-    loadActiveStoreData();
     renderStoresView();
 }
 
@@ -522,3 +570,7 @@ window.onload = () => {
         renderSettingsView();
     };
 };
+
+// 전역 함수 등록
+window.editStore = editStore;
+window.deleteStore = deleteStore;
