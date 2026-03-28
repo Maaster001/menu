@@ -299,7 +299,7 @@ if (finishOrderBtn) {
             date: new Date().toLocaleString(),
             items: ordered.map(i => `${i.name} x${i.qty}`),
             totalPrice: total
-        });
+        };
         menuData.forEach(i => i.qty = 0);
         saveData();
         switchView('history');
@@ -529,12 +529,16 @@ if (addStoreBtn) addStoreBtn.onclick = addStore;
 // --- 8. 초기화 및 유틸리티 ---
 function initPullToRefresh() {
     let startY = 0;
+    const container = document.querySelector('.app-container');
     const main = document.querySelector('.app-main');
+    const indicator = document.getElementById('refresh-indicator');
+    const refreshText = indicator.querySelector('.refresh-text');
+    const threshold = 100;
     
     document.addEventListener('touchstart', (e) => {
-        // 스크롤이 맨 위에 있을 때만 시작 위치 기록
         if (main.scrollTop === 0) {
             startY = e.touches[0].pageY;
+            indicator.style.transition = 'none';
         } else {
             startY = -1;
         }
@@ -542,13 +546,40 @@ function initPullToRefresh() {
 
     document.addEventListener('touchmove', (e) => {
         if (startY === -1) return;
-        const currentY = e.touches[0].pageY;
-        const diff = currentY - startY;
+        const diff = e.touches[0].pageY - startY;
         
-        // 150px 이상 아래로 당기면 새로고침
-        if (diff > 150) {
-            location.reload();
+        if (diff > 0) {
+            // 저항감 있는 드래그 효과
+            const moveY = Math.min(diff * 0.4, threshold + 20);
+            indicator.style.transform = `translateY(${moveY}px)`;
+            
+            if (moveY > threshold) {
+                refreshText.textContent = '놓아서 새로고침';
+            } else {
+                refreshText.textContent = '당겨서 새로고침';
+            }
         }
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        if (startY === -1) return;
+        const diff = e.changedTouches[0].pageY - startY;
+        const moveY = diff * 0.4;
+
+        if (moveY > threshold) {
+            indicator.classList.add('refreshing');
+            refreshText.textContent = '새로고침 중...';
+            indicator.style.transition = 'transform 0.3s';
+            indicator.style.transform = `translateY(${threshold}px)`;
+            
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        } else {
+            indicator.style.transition = 'transform 0.3s';
+            indicator.style.transform = 'translateY(0)';
+        }
+        startY = -1;
     }, { passive: true });
 }
 
