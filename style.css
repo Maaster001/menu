@@ -119,8 +119,17 @@ body {
     position: absolute; right: 0; top: 0; height: 100%; width: 80px; 
     background: #ff4d4d; color: #fff; border: none; font-weight: 600;
 }
-.drag-handle { color: #ccc; font-size: 1.2rem; padding: 10px 5px; cursor: grab; }
-.settings-row input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+.btn-add { width: 100%; padding: 15px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: 600; margin-bottom: 15px; cursor: pointer; }
+.btn-add:active { transform: scale(0.98); opacity: 0.9; }
+
+.settings-actions { display: flex; gap: 10px; margin-top: 20px; }
+.btn-cancel { flex: 1; padding: 15px; background: #eee; color: #333; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; }
+.btn-save { flex: 2; padding: 15px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; }
+.btn-cancel:active, .btn-save:active { transform: scale(0.98); opacity: 0.9; }
+
+.drag-handle { color: #ccc; font-size: 1.2rem; padding: 10px 5px; cursor: grab; flex-shrink: 0; }
+.settings-row input[type="text"] { flex: 1.5; min-width: 0; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; }
+.settings-row input[type="number"] { width: 80px; flex-shrink: 0; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; }
 
 .store-item { background: #fff; border-radius: 12px; margin-bottom: 12px; border: 1px solid #eee; position: relative; overflow: hidden; }
 .store-row { 
