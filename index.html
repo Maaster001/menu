@@ -12,7 +12,7 @@
         <header class="app-header">
             <h1 id="view-title">주문 받기</h1>
             <div class="header-btns">
-                <!-- 설정 버튼 이동됨 -->
+                <button id="store-menu-btn" class="btn-mini">가게 선택</button>
             </div>
         </header>
 
@@ -61,6 +61,19 @@
                 <div class="settings-actions">
                     <button id="cancel-settings" class="btn-cancel">취소</button>
                     <button id="save-settings" class="btn-save">저장</button>
+                </div>
+            </section>
+
+            <!-- 5. 가게 관리 화면 (Stores) -->
+            <section id="view-stores" class="view hidden">
+                <div class="stores-header">
+                    <button id="add-store-btn" class="btn-add">+ 새 가게 추가</button>
+                </div>
+                <div id="stores-list" class="menu-list stores-list">
+                    <!-- 가게 리스트 (JS 생성) -->
+                </div>
+                <div class="settings-actions">
+                    <button id="back-to-app" class="btn-cancel">닫기</button>
                 </div>
             </section>
         </main>

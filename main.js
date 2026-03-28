@@ -1,6 +1,6 @@
 /**
  * Interactive Alba Order Assistant (Precise Tap & Swipe)
- * Clean & Fixed Version
+ * Multi-Store Support Version
  */
 
 // --- 1. 데이터 관리 ---
@@ -11,18 +11,74 @@ const defaultMenu = [
     { id: 4, name: '얼그레이', price: 3500, category: '티', qty: 0 }
 ];
 
-let menuData = JSON.parse(localStorage.getItem('albaMenu_v4')) || defaultMenu;
-let orderHistory = JSON.parse(localStorage.getItem('albaHistory')) || [];
+let stores = JSON.parse(localStorage.getItem('albaStores')) || [];
+let currentStoreId = localStorage.getItem('albaCurrentStoreId');
+
+// 초기 마이그레이션 및 데이터 로드
+function initData() {
+    // 기존에 단일 가게 데이터만 있던 경우 마이그레이션
+    const legacyMenu = localStorage.getItem('albaMenu_v4');
+    const legacyHistory = localStorage.getItem('albaHistory');
+
+    if (stores.length === 0) {
+        const initialStore = {
+            id: 'store_' + Date.now(),
+            name: '기본 가게',
+            menuData: legacyMenu ? JSON.parse(legacyMenu) : defaultMenu,
+            orderHistory: legacyHistory ? JSON.parse(legacyHistory) : []
+        };
+        stores.push(initialStore);
+        currentStoreId = initialStore.id;
+        saveStores();
+    }
+
+    if (!currentStoreId || !stores.find(s => s.id === currentStoreId)) {
+        currentStoreId = stores[0].id;
+    }
+    
+    localStorage.setItem('albaCurrentStoreId', currentStoreId);
+    loadActiveStoreData();
+}
+
+let menuData = [];
+let orderHistory = [];
 let currentView = 'order';
-let currentCategory = menuData.length > 0 ? menuData[0].category : '';
+let currentCategory = '';
 let currentSettingsCategory = '';
-let tempMenuData = []; // 설정 편집용 임시 데이터
+let tempMenuData = [];
+
+function loadActiveStoreData() {
+    const activeStore = stores.find(s => s.id === currentStoreId);
+    if (activeStore) {
+        menuData = activeStore.menuData;
+        orderHistory = activeStore.orderHistory;
+        currentCategory = menuData.length > 0 ? menuData[0].category : '';
+    }
+}
+
+function saveStores() {
+    localStorage.setItem('albaStores', JSON.stringify(stores));
+    localStorage.setItem('albaCurrentStoreId', currentStoreId);
+}
+
+function saveData() {
+    const activeStore = stores.find(s => s.id === currentStoreId);
+    if (activeStore) {
+        activeStore.menuData = menuData;
+        activeStore.orderHistory = orderHistory;
+        saveStores();
+    }
+}
 
 // --- 2. DOM 요소 ---
 const viewTitle = document.getElementById('view-title');
 const views = document.querySelectorAll('.view');
 const navBtns = document.querySelectorAll('.nav-btn');
-const settingsBtn = document.querySelector('.nav-btn[data-view="settings"]');
+const storeMenuBtn = document.getElementById('store-menu-btn');
+const backToAppBtn = document.getElementById('back-to-app');
+const storesList = document.getElementById('stores-list');
+const addStoreBtn = document.getElementById('add-store-btn');
+
 const cancelSettingsBtn = document.getElementById('cancel-settings');
 const saveSettingsBtn = document.getElementById('save-settings');
 const categoryBar = document.getElementById('category-bar');
@@ -35,36 +91,30 @@ const summaryTotalPrice = document.getElementById('summary-total-price');
 const finishOrderBtn = document.getElementById('finish-order-btn');
 const feedbackLayer = document.getElementById('feedback-layer');
 
-// --- 3. 화면 전환 ---
+// --- 3. 화면 전환 및 내비게이션 ---
 navBtns.forEach(btn => {
     btn.onclick = () => {
         const targetView = btn.dataset.view;
-        
-        // 설정 화면 진입 시 데이터 복사 로직 추가
         if (targetView === 'settings') {
             tempMenuData = JSON.parse(JSON.stringify(menuData));
         }
-        
         switchView(targetView);
-        navBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
     };
 });
 
+if (storeMenuBtn) storeMenuBtn.onclick = () => switchView('stores');
+if (backToAppBtn) backToAppBtn.onclick = () => switchView('order');
+
 if (cancelSettingsBtn) cancelSettingsBtn.onclick = () => {
-    // 수정 사항 버리고 복구
     tempMenuData = [];
     switchView('order');
-    navBtns.forEach(b => b.classList.toggle('active', b.dataset.view === 'order'));
 };
 
 if (saveSettingsBtn) saveSettingsBtn.onclick = () => {
-    // 임시 데이터를 실제 데이터로 반영
     menuData = JSON.parse(JSON.stringify(tempMenuData));
     saveData();
     tempMenuData = [];
     switchView('order');
-    navBtns.forEach(b => b.classList.toggle('active', b.dataset.view === 'order'));
 };
 
 function switchView(viewName) {
@@ -78,6 +128,9 @@ function switchView(viewName) {
         b.classList.toggle('active', b.dataset.view === viewName);
     });
 
+    // 헤더 버튼 노출 상태
+    if (storeMenuBtn) storeMenuBtn.classList.toggle('hidden', viewName === 'stores');
+
     if (viewName === 'order') {
         viewTitle.textContent = '주문 받기';
         renderOrderView();
@@ -90,11 +143,18 @@ function switchView(viewName) {
     } else if (viewName === 'settings') {
         viewTitle.textContent = '메뉴 설정';
         renderSettingsView();
+    } else if (viewName === 'stores') {
+        viewTitle.textContent = '가게 관리';
+        renderStoresView();
     }
 }
 
-// --- 4. 주문 화면 (정밀 탭 & 스와이프 로직) ---
+// --- 4. 주문 화면 로직 ---
 function renderOrderView() {
+    const activeStore = stores.find(s => s.id === currentStoreId);
+    const storeDisplayName = activeStore ? ` (${activeStore.name})` : '';
+    viewTitle.textContent = '주문 받기' + storeDisplayName;
+
     const categories = [...new Set(menuData.map(item => item.category))];
     if (!currentCategory && categories.length > 0) currentCategory = categories[0];
     
@@ -130,26 +190,22 @@ function renderOrderView() {
 
         let startX = 0;
         let startY = 0;
-        let currentX = 0;
         let moved = false;
 
         li.addEventListener('touchstart', (e) => {
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
-            currentX = startX;
             li.style.transition = 'none';
             moved = false;
         }, { passive: true });
 
         li.addEventListener('touchmove', (e) => {
-            currentX = e.touches[0].clientX;
+            let currentX = e.touches[0].clientX;
             let currentY = e.touches[0].clientY;
             let diffX = currentX - startX;
             let diffY = currentY - startY;
 
-            if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) {
-                moved = true; 
-            }
+            if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) moved = true; 
 
             if (moved && Math.abs(diffX) > Math.abs(diffY)) {
                 if (diffX < 0) {
@@ -169,19 +225,10 @@ function renderOrderView() {
             li.style.transform = 'translateX(0)';
             li.classList.remove('swipe-ready');
 
-            const isBtn = e.target.closest('.qty-btn');
-            if (isBtn) {
-                startX = 0; currentX = 0; moved = false;
-                return;
-            }
+            if (e.target.closest('.qty-btn')) return;
 
-            if (!moved) {
-                handleItemAction(item.id, 1, e);
-            } else if (diffX < -60) {
-                handleItemAction(item.id, 5, e);
-            }
-
-            startX = 0; currentX = 0; moved = false;
+            if (!moved) handleItemAction(item.id, 1, e);
+            else if (diffX < -60) handleItemAction(item.id, 5, e);
         }, { passive: true });
 
         orderMenuList.appendChild(li);
@@ -191,7 +238,6 @@ function renderOrderView() {
 function handleItemAction(id, delta, event) {
     const item = menuData.find(i => i.id === id);
     if (!item) return;
-
     item.qty = Math.max(0, item.qty + delta);
     saveData();
     renderOrderView();
@@ -203,18 +249,14 @@ function showFeedback(delta, event) {
     text.className = 'floating-text';
     text.textContent = `+${delta}`;
     
-    let x, y;
+    let x = window.innerWidth / 2, y = window.innerHeight / 2;
     if (event && event.changedTouches && event.changedTouches.length > 0) {
         x = event.changedTouches[0].clientX;
         y = event.changedTouches[0].clientY;
-    } else {
-        x = window.innerWidth / 2;
-        y = window.innerHeight / 2;
     }
     
     text.style.left = `${x}px`;
     text.style.top = `${y}px`;
-    
     feedbackLayer.appendChild(text);
     setTimeout(() => text.remove(), 600);
 }
@@ -229,11 +271,10 @@ function updateQty(id, delta, event) {
     }
 }
 
-// --- 5. 확인 화면 & 주문 완료 ---
+// --- 5. 확인 및 히스토리 ---
 function renderSummaryView() {
     finalOrderList.innerHTML = '';
     const ordered = menuData.filter(i => i.qty > 0);
-    
     if (ordered.length === 0) {
         finalOrderList.innerHTML = '<li class="empty-msg">주문 내역이 없습니다.</li>';
         summaryTotalPrice.textContent = '0원';
@@ -241,7 +282,6 @@ function renderSummaryView() {
         finishOrderBtn.style.opacity = '0.3';
         return;
     }
-
     finishOrderBtn.disabled = false;
     finishOrderBtn.style.opacity = '1';
 
@@ -259,14 +299,14 @@ function renderSummaryView() {
             </div>
         `;
         li.onclick = (e) => {
-            if (e.target.closest('.qty-btn')) return;
-            updateQty(item.id, 1, e);
-            renderSummaryView();
+            if (!e.target.closest('.qty-btn')) {
+                updateQty(item.id, 1, e);
+                renderSummaryView();
+            }
         };
         finalOrderList.appendChild(li);
         totalPrice += (item.price * item.qty);
     });
-
     summaryTotalPrice.textContent = `${totalPrice.toLocaleString()}원`;
 }
 
@@ -274,36 +314,25 @@ if (finishOrderBtn) {
     finishOrderBtn.onclick = () => {
         const ordered = menuData.filter(i => i.qty > 0);
         if (ordered.length === 0) return;
-
         const total = ordered.reduce((sum, i) => sum + (i.price * i.qty), 0);
-        const orderRecord = {
+        orderHistory.unshift({
             id: Date.now(),
             date: new Date().toLocaleString(),
             items: ordered.map(i => `${i.name} x${i.qty}`),
             totalPrice: total
-        };
-
-        orderHistory.unshift(orderRecord);
-        localStorage.setItem('albaHistory', JSON.stringify(orderHistory));
-
+        });
         menuData.forEach(i => i.qty = 0);
         saveData();
         switchView('history');
-        
-        navBtns.forEach(b => b.classList.remove('active'));
-        const historyNav = document.querySelector('[data-view="history"]');
-        if (historyNav) historyNav.classList.add('active');
     };
 }
 
-// --- 6. 히스토리 화면 ---
 function renderHistoryView() {
     historyList.innerHTML = '';
     if (orderHistory.length === 0) {
         historyList.innerHTML = '<div class="empty-msg">기록된 주문이 없습니다.</div>';
         return;
     }
-
     orderHistory.forEach(order => {
         const div = document.createElement('div');
         div.className = 'history-item';
@@ -316,26 +345,13 @@ function renderHistoryView() {
     });
 }
 
-// --- 7. 설정 및 유틸리티 ---
-function initSettingsEvents() {
-    const addBtn = document.getElementById('add-menu-btn');
-    if (addBtn) {
-        addBtn.onclick = () => {
-            const newId = Date.now();
-            const category = currentSettingsCategory || (tempMenuData.length > 0 ? [...new Set(tempMenuData.map(i => i.category))][0] : '기타');
-            tempMenuData.push({ id: newId, name: '새 메뉴', price: 0, category: category, qty: 0 });
-            renderSettingsView();
-        };
-    }
-}
-
+// --- 6. 설정 화면 ---
 function renderSettingsView() {
     const categories = [...new Set(tempMenuData.map(item => item.category))];
     if (!currentSettingsCategory && categories.length > 0) currentSettingsCategory = categories[0];
 
     if (settingsCategoryBar) {
         settingsCategoryBar.innerHTML = '';
-        
         categories.forEach(cat => {
             const btn = document.createElement('button');
             btn.className = `cat-btn ${currentSettingsCategory === cat ? 'active' : ''}`;
@@ -346,16 +362,14 @@ function renderSettingsView() {
             };
             settingsCategoryBar.appendChild(btn);
         });
-
         const addCatBtn = document.createElement('button');
         addCatBtn.className = 'cat-btn add-cat-btn';
         addCatBtn.textContent = '+';
         addCatBtn.onclick = () => {
-            const newCatName = prompt('새로운 카테고리 이름을 입력하세요:');
-            if (newCatName && newCatName.trim()) {
-                currentSettingsCategory = newCatName.trim();
-                const newId = Date.now();
-                tempMenuData.push({ id: newId, name: '새 메뉴', price: 0, category: currentSettingsCategory, qty: 0 });
+            const name = prompt('새로운 카테고리 이름을 입력하세요:');
+            if (name && name.trim()) {
+                currentSettingsCategory = name.trim();
+                tempMenuData.push({ id: Date.now(), name: '새 메뉴', price: 0, category: currentSettingsCategory, qty: 0 });
                 renderSettingsView();
             }
         };
@@ -364,11 +378,9 @@ function renderSettingsView() {
 
     settingsMenuList.innerHTML = '';
     const filtered = tempMenuData.filter(i => i.category === currentSettingsCategory);
-
-    filtered.forEach((item, index) => {
+    filtered.forEach(item => {
         const itemEl = document.createElement('div');
         itemEl.className = 'settings-item';
-        itemEl.dataset.id = item.id;
         itemEl.innerHTML = `
             <div class="settings-row">
                 <div class="drag-handle">☰</div>
@@ -378,151 +390,135 @@ function renderSettingsView() {
             <button class="btn-del" onclick="deleteMenu(${item.id})">삭제</button>
         `;
 
-        // 슬라이드 삭제 로직 개선
         const row = itemEl.querySelector('.settings-row');
-        let startX = 0;
-        let startY = 0;
-        let currentX = 0;
-        let isSwiping = false;
-        let moved = false;
-
+        let startX = 0, moved = false;
         itemEl.addEventListener('touchstart', (e) => {
-            // 드래그 핸들에서 시작하는 경우는 SortableJS에 양보
-            if (e.target.closest('.drag-handle')) return;
-            
+            if (e.target.closest('.drag-handle') || e.target.tagName === 'INPUT') return;
             startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
             row.style.transition = 'none';
-            isSwiping = true;
             moved = false;
         }, { passive: true });
-
         itemEl.addEventListener('touchmove', (e) => {
-            if (!isSwiping) return;
-            currentX = e.touches[0].clientX;
-            let currentY = e.touches[0].clientY;
-            let diffX = currentX - startX;
-            let diffY = currentY - startY;
-
-            // 수평 이동이 수직 이동보다 크고 일정 거리 이상일 때만 슬라이드로 간주
-            if (!moved && Math.abs(diffX) > 10) moved = true;
-
-            if (moved && Math.abs(diffX) > Math.abs(diffY)) {
-                if (diffX < 0) { // 왼쪽으로 슬라이드
-                    let moveX = Math.max(diffX, -80);
-                    row.style.transform = `translateX(${moveX}px)`;
-                    // 슬라이드 중이면 입력창 포커스 해제
-                    if (Math.abs(diffX) > 20 && document.activeElement.tagName === 'INPUT') {
-                        document.activeElement.blur();
-                    }
-                } else {
-                    row.style.transform = `translateX(0)`;
-                }
+            let diffX = e.touches[0].clientX - startX;
+            if (Math.abs(diffX) > 10) moved = true;
+            if (moved) {
+                row.style.transform = `translateX(${Math.min(0, Math.max(diffX, -80))}px)`;
+                if (Math.abs(diffX) > 20 && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
             }
         }, { passive: true });
-
         itemEl.addEventListener('touchend', (e) => {
-            if (!isSwiping) return;
-            isSwiping = false;
-            row.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-            
+            row.style.transition = 'transform 0.3s';
             let diffX = e.changedTouches[0].clientX - startX;
-            if (moved && diffX < -40) {
-                row.style.transform = 'translateX(-80px)';
-            } else {
-                row.style.transform = 'translateX(0)';
-            }
+            row.style.transform = (moved && diffX < -40) ? 'translateX(-80px)' : 'translateX(0)';
         }, { passive: true });
 
         settingsMenuList.appendChild(itemEl);
     });
-
     initSortable();
 }
-let sortableInstance = null;
 
 function initSortable() {
-    if (typeof Sortable === 'undefined') return;
-    if (sortableInstance) sortableInstance.destroy();
-
-    sortableInstance = Sortable.create(settingsMenuList, {
-        animation: 200,
-        handle: '.drag-handle', // 전체가 아닌 핸들로만 드래그 가능하게 변경
-        delay: 0,
-        delayOnTouchOnly: false,
-        touchStartThreshold: 5,
-        ghostClass: 'sortable-ghost',
-        chosenClass: 'sortable-chosen',
-        onStart: function() {
-            if (navigator.vibrate) navigator.vibrate(20);
-        },
-        onEnd: function (evt) {
-            reorderMenuData();
-        }
-    });
-}
-
-function reorderMenuData() {
-    const currentCategoryItems = Array.from(settingsMenuList.children);
-    const newOrderedIds = currentCategoryItems.map(el => parseInt(el.dataset.id));
-
-    const otherCategoryMenus = tempMenuData.filter(i => i.category !== currentSettingsCategory);
-    const sortedCurrentMenus = newOrderedIds.map(id => tempMenuData.find(i => i.id === id));
-
-    tempMenuData = [...otherCategoryMenus, ...sortedCurrentMenus];
-}
-
-function updateMenuInfo(id, field, value) {
-    const item = tempMenuData.find(i => i.id === id);
-    if (item) {
-        if (field === 'price') value = parseInt(value) || 0;
-        item[field] = value;
+    if (typeof Sortable !== 'undefined') {
+        Sortable.create(settingsMenuList, {
+            handle: '.drag-handle',
+            animation: 200,
+            onEnd: () => {
+                const newIds = Array.from(settingsMenuList.children).map(el => parseInt(el.dataset.id));
+                const others = tempMenuData.filter(i => i.category !== currentSettingsCategory);
+                const current = newIds.map(id => tempMenuData.find(i => i.id === id));
+                tempMenuData = [...others, ...current];
+            }
+        });
     }
 }
 
-function deleteMenu(id) {
+window.updateMenuInfo = (id, field, value) => {
+    const item = tempMenuData.find(i => i.id === id);
+    if (item) item[field] = (field === 'price') ? (parseInt(value) || 0) : value;
+};
+
+window.deleteMenu = (id) => {
     tempMenuData = tempMenuData.filter(i => i.id !== id);
     renderSettingsView();
-}
+};
 
-const resetBtn = document.getElementById('reset-order-btn');
-if (resetBtn) {
-    resetBtn.onclick = () => {
-        menuData.forEach(i => i.qty = 0);
-        saveData();
-        switchView(currentView);
-    };
-}
-
-function saveData() {
-    localStorage.setItem('albaMenu_v4', JSON.stringify(menuData));
-}
-
-function preventZoom() {
-    document.addEventListener('touchstart', (event) => {
-        if (event.touches.length > 1) event.preventDefault();
-    }, { passive: false });
-
-    document.addEventListener('gesturestart', (event) => {
-        event.preventDefault();
+// --- 7. 가게 관리 로직 ---
+function renderStoresView() {
+    storesList.innerHTML = '';
+    stores.forEach(store => {
+        const div = document.createElement('div');
+        div.className = `store-item ${store.id === currentStoreId ? 'active' : ''}`;
+        div.innerHTML = `
+            <div class="store-info">
+                <div class="store-name">${store.name}</div>
+                <div class="store-meta">메뉴: ${store.menuData.length}개 / 기록: ${store.orderHistory.length}건</div>
+            </div>
+            ${stores.length > 1 ? '<button class="btn-del" style="position:static; width:60px; height:40px; border-radius:8px;">삭제</button>' : ''}
+        `;
+        
+        div.onclick = (e) => {
+            if (e.target.closest('.btn-del')) {
+                deleteStore(store.id);
+            } else {
+                selectStore(store.id);
+            }
+        };
+        storesList.appendChild(div);
     });
+}
 
-    // 롱 프레스 시스템 메뉴 및 돋보기 방지
-    document.addEventListener('contextmenu', (event) => {
-        if (event.target.tagName !== 'INPUT' && event.target.tagName !== 'TEXTAREA') {
-            event.preventDefault();
-        }
+function selectStore(id) {
+    currentStoreId = id;
+    loadActiveStoreData();
+    saveStores();
+    switchView('order');
+}
+
+function addStore() {
+    const name = prompt('새로운 가게 이름을 입력하세요:');
+    if (name && name.trim()) {
+        const newStore = {
+            id: 'store_' + Date.now(),
+            name: name.trim(),
+            menuData: JSON.parse(JSON.stringify(defaultMenu)),
+            orderHistory: []
+        };
+        stores.push(newStore);
+        saveStores();
+        renderStoresView();
+    }
+}
+
+function deleteStore(id) {
+    if (stores.length <= 1) return;
+    stores = stores.filter(s => s.id !== id);
+    if (currentStoreId === id) currentStoreId = stores[0].id;
+    saveStores();
+    loadActiveStoreData();
+    renderStoresView();
+}
+
+if (addStoreBtn) addStoreBtn.onclick = addStore;
+
+// --- 8. 초기화 ---
+function preventZoom() {
+    document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+    document.addEventListener('contextmenu', (e) => {
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
     }, false);
 }
 
 window.onload = () => {
+    initData();
     switchView('order');
-    initSettingsEvents();
     preventZoom();
+    
+    // 설정 버튼 이벤트 연결
+    const addMenuBtn = document.getElementById('add-menu-btn');
+    if (addMenuBtn) addMenuBtn.onclick = () => {
+        const cat = currentSettingsCategory || '기타';
+        tempMenuData.push({ id: Date.now(), name: '새 메뉴', price: 0, category: cat, qty: 0 });
+        renderSettingsView();
+    };
 };
-
-// 전역 함수
-window.updateQty = updateQty;
-window.renderSummaryView = renderSummaryView;
-window.deleteMenu = deleteMenu;
-window.updateMenuInfo = updateMenuInfo;
